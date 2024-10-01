@@ -138,7 +138,22 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    config.cart.rom.assign(std::istreambuf_iterator<char>(cart_file), {});
+    bool le = cart_file.get() != 0x0E;
+    cart_file.seekg(0,std::ios::beg);
+    if (!le) {config.cart.rom.assign(std::istreambuf_iterator<char>(cart_file),{});}
+    else {
+        printf("Found little-endian ROM\n");
+        cart_file.seekg(0,std::ios::end);
+        std::streampos size = cart_file.tellg();
+        cart_file.seekg(0,std::ios::beg);
+        for (int i = 0; i < size / 2; i++) {
+            uint16_t t16;
+            cart_file.read(reinterpret_cast<char*>(&t16),2);
+            t16 = Common::bswp16(t16);
+            config.cart.rom.push_back(t16 & 0xFF);
+            config.cart.rom.push_back(t16 >> 8);
+        }
+    }
     cart_file.close();
 
     std::ifstream bios_file(bios_name, std::ios::binary);
@@ -212,7 +227,7 @@ int main(int argc, char** argv)
     Input::add_key_binding(SDL_GetKeyFromName(config_ini.GetValue("keybinds","DOWN","DOWN")), Input::PAD_DOWN);
 
     SDL_Keycode full_key = SDL_GetKeyFromName(config_ini.GetValue("keybinds","Fullscreen","F11"));
-    
+
     bool has_quit = false;
     while (!has_quit)
     {
@@ -233,13 +248,13 @@ int main(int argc, char** argv)
                 } else if (e.key.keysym.sym == full_key) {
                     SDL::toggle_fullscreen();
                 } else {
-                Input::set_key_state(e.key.keysym.sym, true);
+                    Input::set_key_state(e.key.keysym.sym, true);
                 }
                 break;
             case SDL_KEYUP:
                 if (e.key.keysym.sym == SDLK_ESCAPE || e.key.keysym.sym == full_key) {
                 } else {
-                Input::set_key_state(e.key.keysym.sym, false);
+                    Input::set_key_state(e.key.keysym.sym, false);
                 }
                 break;
             case SDL_WINDOWEVENT:
