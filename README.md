@@ -5,14 +5,12 @@ Includes functional but slightly buggy/incomplete sound emulation.
 ## How to use
 LoopyMSE must be launched from the command line with these arguments: `<game ROM> <BIOS> [sound BIOS]`
 
-The emulator will automatically load .sav files with the same name as the game ROM. If no .sav file exists, the emulator will create one. Specifying the save file to use in the command line may be added at a future date.
+The emulator will automatically load .sav files with the same name as the game ROM in the directory of the executable. If no .sav file exists, the emulator will create one. Specifying the save file to use in the command line may be added at a future date.
 
 The sound BIOS file is optional, and the emulator will run silently if it is not provided. The file may be incorrectly labelled as "Printer BIOS" in older ROM sets.
 
-NOTE: all files must be in big-endian format.
-
 ## Controls
-Only hardcoded keyboard keys for the time being:
+Default keyboard keys:
 
 | Loopy | Keyboard |
 | ----- | -------- |
@@ -27,6 +25,8 @@ Only hardcoded keyboard keys for the time being:
 | Left | Left |
 | Right | Right |
 | Start | Enter/Return |
+| Fullscreen | F11 |
+| Exit Emulator | ESC (hardcoded) |
 
 ## Special Thanks
 kasami - sound implementation, dumping the BIOS, HW testing, and many other valuable non-code contributions  
