@@ -152,7 +152,7 @@ static void vsync_start()
 		SH2::OCPM::INTC::deassert_irq(irq_id);
 	}
 
-	dump_bmp("output_display", vdp.display_output);
+	//dump_bmp("output_display", vdp.display_output);
 	//dump_all_bmps();
 	//dump_for_serial();
 }
