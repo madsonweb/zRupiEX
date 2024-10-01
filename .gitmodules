@@ -2,3 +2,6 @@
 	path = externals/SDL
 	url = https://github.com/libsdl-org/SDL
 	branch = SDL2
+[submodule "externals/simpleini"]
+	path = externals/simpleini
+	url = https://github.com/brofield/simpleini
