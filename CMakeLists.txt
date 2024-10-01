@@ -16,3 +16,4 @@ set (SDL_TEST OFF CACHE BOOL "" FORCE)
 
 add_subdirectory (src)
 add_subdirectory (externals/SDL)
+add_subdirectory (externals/simpleini)

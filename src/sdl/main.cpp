@@ -11,6 +11,16 @@
 #include <sound/sound.h>
 #include <video/video.h>
 
+#include <SimpleIni.h>
+#include <filesystem>
+
+const std::string JC = 
+#ifdef _WIN32
+    "\\";
+#else
+    "/";
+#endif
+
 namespace SDL
 {
 
@@ -26,7 +36,11 @@ struct Screen
 
 static Screen screen;
 
-void initialize()
+void toggle_fullscreen() {
+    SDL_SetWindowFullscreen(screen.window, (SDL_GetWindowFlags(screen.window) & SDL_WINDOW_FULLSCREEN_DESKTOP) ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+}
+
+void initialize(bool fullscreen)
 {
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
     {
@@ -42,8 +56,9 @@ void initialize()
     SDL_CreateWindowAndRenderer(2 * DISPLAY_WIDTH, 2 * DISPLAY_HEIGHT, 0, &screen.window, &screen.renderer);
     SDL_SetWindowTitle(screen.window, "Rupi");
     SDL_SetWindowSize(screen.window, 2 * DISPLAY_WIDTH, 2 * DISPLAY_HEIGHT);
-    SDL_SetWindowResizable(screen.window, SDL_FALSE);
+    SDL_SetWindowResizable(screen.window, SDL_TRUE);
     SDL_RenderSetLogicalSize(screen.renderer, 2 * DISPLAY_WIDTH, 2 * DISPLAY_HEIGHT);
+    if (fullscreen) {SDL_SetWindowFullscreen(screen.window, SDL_WINDOW_FULLSCREEN_DESKTOP);}
 
     screen.texture = SDL_CreateTexture(screen.renderer, SDL_PIXELFORMAT_ARGB1555, SDL_TEXTUREACCESS_STREAMING, DISPLAY_WIDTH, DISPLAY_HEIGHT);
 }
@@ -69,7 +84,7 @@ void update(uint16_t* display_output)
 
 std::string remove_extension(std::string file_path)
 {
-    auto pos = file_path.find(".");
+    auto pos = file_path.find_last_of(".");
     if (pos == std::string::npos)
     {
         return file_path;
@@ -77,9 +92,24 @@ std::string remove_extension(std::string file_path)
 
     return file_path.substr(0, pos);
 }
+std::string get_fname(std::string file_path) {return file_path.substr(file_path.find_last_of("/\\") + 1);}
 
 int main(int argc, char** argv)
 {
+    const std::string exep = std::filesystem::weakly_canonical(std::filesystem::path(argv[0])).parent_path().string() + JC;
+    std::string cnff = exep + "config.ini";
+    std::string savdir = exep + "saves";
+
+    if (!std::filesystem::exists(savdir)) {std::filesystem::create_directory(savdir);}
+
+    std::ifstream config_chk(cnff);
+    if (!config_chk.good()) {
+        config_chk.close();
+        std::ofstream config_w(cnff);
+        config_w << "[display]\nfullscreen=false\n\n[keybinds]\nSTART=TAB\nA=SPACE\nB=c\nC=f\nD=v\nL1=q\nR1=e\nLEFT=a\nRIGHT=d\nUP=w\nDOWN=s\nFullscreen=F11\n";
+        config_w.close();
+    } else {config_chk.close();}
+
     if (argc < 3)
     {
         //Sound ROM currently optional
@@ -87,7 +117,14 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    SDL::initialize();
+    CSimpleIniA config_ini;
+    SI_Error irc = config_ini.LoadFile(cnff.c_str());
+    if (irc != SI_OK) {
+        printf("Failed to load config.ini, please delete it and restart to reset settings or fix it yourself.\n");
+        return 1;
+    }
+
+    SDL::initialize(config_ini.GetBoolValue("display","fullscreen",false));
 
     std::string cart_name = argv[1];
     std::string bios_name = argv[2];
@@ -136,7 +173,8 @@ int main(int argc, char** argv)
     uint32_t sram_size = Common::bswp32(sram_end) - Common::bswp32(sram_start) + 1;
 
     //Attempt to load SRAM from a file
-    config.cart.sram_file_path = remove_extension(cart_name) + ".sav";
+    config.cart.sram_file_path = savdir + JC + get_fname(remove_extension(cart_name)) + ".sav";
+    printf(("SRAM path: " + config.cart.sram_file_path + "\n").c_str());
     std::ifstream sram_file(config.cart.sram_file_path, std::ios::binary);
     if (!sram_file.is_open())
     {
@@ -158,20 +196,22 @@ int main(int argc, char** argv)
     System::initialize(config);
 
     //All subprojects have been initialized, so it is safe to reference them now
-    Input::add_key_binding(SDLK_RETURN, Input::PAD_START);
+    Input::add_key_binding(SDL_GetKeyFromName(config_ini.GetValue("keybinds","START","RETURN")), Input::PAD_START);
 
-    Input::add_key_binding(SDLK_z, Input::PAD_A);
-    Input::add_key_binding(SDLK_x, Input::PAD_B);
-    Input::add_key_binding(SDLK_a, Input::PAD_C);
-    Input::add_key_binding(SDLK_s, Input::PAD_D);
+    Input::add_key_binding(SDL_GetKeyFromName(config_ini.GetValue("keybinds","A","z")), Input::PAD_A);
+    Input::add_key_binding(SDL_GetKeyFromName(config_ini.GetValue("keybinds","B","x")), Input::PAD_B);
+    Input::add_key_binding(SDL_GetKeyFromName(config_ini.GetValue("keybinds","C","a")), Input::PAD_C);
+    Input::add_key_binding(SDL_GetKeyFromName(config_ini.GetValue("keybinds","D","s")), Input::PAD_D);
 
-    Input::add_key_binding(SDLK_q, Input::PAD_L1);
-    Input::add_key_binding(SDLK_w, Input::PAD_R1);
+    Input::add_key_binding(SDL_GetKeyFromName(config_ini.GetValue("keybinds","L1","q")), Input::PAD_L1);
+    Input::add_key_binding(SDL_GetKeyFromName(config_ini.GetValue("keybinds","R1","w")), Input::PAD_R1);
 
-    Input::add_key_binding(SDLK_LEFT, Input::PAD_LEFT);
-    Input::add_key_binding(SDLK_RIGHT, Input::PAD_RIGHT);
-    Input::add_key_binding(SDLK_UP, Input::PAD_UP);
-    Input::add_key_binding(SDLK_DOWN, Input::PAD_DOWN);
+    Input::add_key_binding(SDL_GetKeyFromName(config_ini.GetValue("keybinds","LEFT","LEFT")), Input::PAD_LEFT);
+    Input::add_key_binding(SDL_GetKeyFromName(config_ini.GetValue("keybinds","RIGHT","RIGHT")), Input::PAD_RIGHT);
+    Input::add_key_binding(SDL_GetKeyFromName(config_ini.GetValue("keybinds","UP","UP")), Input::PAD_UP);
+    Input::add_key_binding(SDL_GetKeyFromName(config_ini.GetValue("keybinds","DOWN","DOWN")), Input::PAD_DOWN);
+
+    SDL_Keycode full_key = SDL_GetKeyFromName(config_ini.GetValue("keybinds","Fullscreen","F11"));
     
     bool has_quit = false;
     while (!has_quit)
@@ -188,10 +228,19 @@ int main(int argc, char** argv)
                 has_quit = true;
                 break;
             case SDL_KEYDOWN:
+                if (e.key.keysym.sym == SDLK_ESCAPE) {
+                    has_quit = true;
+                } else if (e.key.keysym.sym == full_key) {
+                    SDL::toggle_fullscreen();
+                } else {
                 Input::set_key_state(e.key.keysym.sym, true);
+                }
                 break;
             case SDL_KEYUP:
+                if (e.key.keysym.sym == SDLK_ESCAPE || e.key.keysym.sym == full_key) {
+                } else {
                 Input::set_key_state(e.key.keysym.sym, false);
+                }
                 break;
             case SDL_WINDOWEVENT:
                 // Everything slows down when minimized so mute sound
