@@ -14,17 +14,17 @@ Default keyboard keys:
 
 | Loopy | Keyboard |
 | ----- | -------- |
-| A | Z |
-| B | X |
-| C | A |
-| D | S |
+| A | Space |
+| B | C |
+| C | F |
+| D | V |
 | L1 | Q |
-| R1 | W |
-| Up | Up |
-| Down | Down |
-| Left | Left |
-| Right | Right |
-| Start | Enter/Return |
+| R1 | E |
+| Up | W |
+| Down | S |
+| Left | A |
+| Right | D |
+| Start | Tab |
 | Fullscreen | F11 |
 | Exit Emulator | ESC (hardcoded) |
 
